@@ -1,11 +1,13 @@
 import os
 import logging
 import sqlalchemy as db
+from sqlalchemy.orm import Session
+from sqlalchemy_utils import database_exists, create_database
 from discord import Client, Intents
 from discord_slash import SlashCommand, SlashContext
 from discord_slash.utils.manage_commands import create_option
 from helpers import run_gpt_inference, get_gpt_first_message
-from models import Guild, User
+from models import Guild, User, Base
 
 logger = logging.getLogger("discord")
 logger.setLevel(logging.DEBUG)
@@ -26,8 +28,11 @@ guild_ids = [892604457030914098]
 ping_mode_users = {}
 
 bot = Client(intents=Intents.default())
-engine = db.create_engine(os.environ["DATABASE_URL"])
 slash = SlashCommand(bot, sync_commands=True)
+engine = db.create_engine(os.environ["DATABASE_URL"])
+if not database_exists(engine.url):
+    create_database(engine.url)
+Base.metadata.create_all(engine)
 
 
 @bot.event
@@ -46,8 +51,12 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    if message.guild.id in ping_mode_users.keys():
-        user_id_to_impersonate = ping_mode_users[message.guild.id]
+    # if message.guild.id in ping_mode_users.keys():
+    guild_ping_mode_users = (
+        Guild.query.filter(id=message.guild.id).first().ping_mode_users
+    )
+    if guild_ping_mode_users:
+        user_id_to_impersonate = guild_ping_mode_users[0]
         message_mentions_ids = {x.id: x for x in message.mentions}
         if user_id_to_impersonate in message_mentions_ids.keys():
             user = message_mentions_ids[user_id_to_impersonate]
@@ -194,7 +203,14 @@ async def gpt_channel_response(channel, user):
     guild_ids=guild_ids,
 )
 async def setuser(ctx: SlashContext, user=None):
-    ping_mode_users[ctx.guild_id] = user.id
+    # ping_mode_users[ctx.guild_id] = user.id
+    with Session(engine) as session:
+        new_guild = Guild(id=int(ctx.guild_id))
+        new_user = User(id=int(user.id))
+        new_guild.ping_mode_users.append(new_user)
+        session.add(new_user)
+        session.add(new_guild)
+        session.commit()
     await ctx.send(f"Impersonating {user.name}.", hidden=True)
 
 

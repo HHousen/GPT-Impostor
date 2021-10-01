@@ -1,3 +1,4 @@
 discord.py
 discord-py-interactions
 sqlalchemy
+sqlalchemy-utils

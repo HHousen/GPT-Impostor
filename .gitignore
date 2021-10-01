@@ -140,3 +140,4 @@ cython_debug/
 
 # Custom
 discord.log
+bot.db
