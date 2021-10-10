@@ -22,7 +22,8 @@ def run_gpt_inference(context, token_max_length=512):
         "temperature": 1.0,
         "top_p": 0.9,
     }
+    headers = {"User-Agent": "(GPT Impostor for Discord, gptimpostor.tech)"}
     response = requests.post(
-        "http://api.vicgalle.net:5000/generate", params=payload
+        "http://api.vicgalle.net:5000/generate", params=payload, headers=headers,
     ).json()
     return response["text"]

@@ -20,6 +20,7 @@ logger.addHandler(handler)
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 MESSAGE_CONTEXT_LIMIT = 50  # Max number of messages to send as context to AI model
+ALLOW_BOT_MESSAGES_IN_CONTEXT = True
 GPT_INVALID_RESPONSE_MESSAGE = (
     "Sorry, I could not think of a good message. Please make "
     + "sure there are enough messages in this channel so that I can learn how you write."
@@ -51,14 +52,30 @@ async def on_message(message):
     if message.author.bot:
         return
 
-    # if message.guild.id in ping_mode_users.keys():
-    guild_ping_mode_users = (
-        Guild.query.filter(id=message.guild.id).first().ping_mode_users
-    )
+    if not message.mentions:
+        return
+
+    if bot.user in message.mentions:
+        webhook, first_response_message = await gpt_channel_response(
+            message.channel, bot.user
+        )
+        if first_response_message:
+            await message.channel.send(first_response_message)
+
+    with Session(engine) as session:
+        guild_ping_mode_users = (
+            session.query(Guild)
+            .filter(Guild.id == message.guild.id)
+            .first()
+            .ping_mode_users
+        )
     if guild_ping_mode_users:
-        user_id_to_impersonate = guild_ping_mode_users[0]
+        can_be_impersonated = {x.id for x in guild_ping_mode_users}
         message_mentions_ids = {x.id: x for x in message.mentions}
-        if user_id_to_impersonate in message_mentions_ids.keys():
+        user_ids_to_impersonate = can_be_impersonated.intersection(
+            set(message_mentions_ids.keys())
+        )
+        for user_id_to_impersonate in user_ids_to_impersonate:
             user = message_mentions_ids[user_id_to_impersonate]
             webhook, first_response_message = await gpt_channel_response(
                 message.channel, user
@@ -83,9 +100,10 @@ async def get_channel_webhook(channel):
 async def get_previous_messages(channel, as_string=True):
     logger.debug("Getting channel %s's previous messages...", channel.id)
     previous_messages = await channel.history(limit=MESSAGE_CONTEXT_LIMIT).flatten()
-    previous_messages = [
-        message for message in previous_messages if not message.author.bot
-    ]
+    if not ALLOW_BOT_MESSAGES_IN_CONTEXT:
+        previous_messages = [
+            message for message in previous_messages if not message.author.bot
+        ]
     # Messages are retrieved so newest are first but GPT should read them as a
     # normal conversation.
     previous_messages.reverse()
@@ -123,18 +141,17 @@ async def monologue(ctx: SlashContext, max_messages=25):
     previous_messages_str = await get_previous_messages(channel)
 
     gpt_response = run_gpt_inference(previous_messages_str, token_max_length=512)
-    print(gpt_response)
     gpt_messages = [
         message.split(":", 1) for message in gpt_response.strip().split("\n")
     ]
+    del gpt_messages[-1]
 
     gpt_messages = gpt_messages[:max_messages]
 
     for content in gpt_messages:
         if len(content) <= 1:
             await ctx.send(
-                GPT_INVALID_RESPONSE_MESSAGE,
-                hidden=True,
+                GPT_INVALID_RESPONSE_MESSAGE, hidden=True,
             )
             return
 
@@ -164,8 +181,7 @@ async def sus(ctx: SlashContext, user=None):
 
     if not first_response_message:
         await ctx.send(
-            GPT_INVALID_RESPONSE_MESSAGE,
-            hidden=True,
+            GPT_INVALID_RESPONSE_MESSAGE, hidden=True,
         )
     else:
         await webhook.send(
@@ -180,17 +196,17 @@ async def gpt_channel_response(channel, user):
     previous_messages_str = await get_previous_messages(channel)
 
     context = previous_messages_str + f"\n{user.name}: "
-    print(f"> Context:\n{context}")
+    logger.debug(f"> Context:\n{context}")
 
     gpt_response = run_gpt_inference(context, token_max_length=50)
-    print(f"> GPT Response:\n{gpt_response}")
+    logger.debug(f"> GPT Response:\n{gpt_response}")
 
     first_response_message = get_gpt_first_message(gpt_response, user.name)
     return webhook, first_response_message
 
 
 @slash.slash(
-    name="setuser",
+    name="adduser",
     description="Impersonate a specific user when they are pinged.",
     options=[
         create_option(
@@ -202,16 +218,81 @@ async def gpt_channel_response(channel, user):
     ],
     guild_ids=guild_ids,
 )
-async def setuser(ctx: SlashContext, user=None):
-    # ping_mode_users[ctx.guild_id] = user.id
+async def adduser(ctx: SlashContext, user):
+    if user == bot.user:
+        await ctx.send(
+            "You cannot impersonate me! I already respond to messages automatically. Try pinging me.",
+            hidden=True,
+        )
+        return
     with Session(engine) as session:
-        new_guild = Guild(id=int(ctx.guild_id))
-        new_user = User(id=int(user.id))
-        new_guild.ping_mode_users.append(new_user)
-        session.add(new_user)
-        session.add(new_guild)
+        guild = session.query(Guild).filter(Guild.id == ctx.guild_id).first()
+        user_db = session.query(User).filter(User.id == user.id).first()
+        if user_db and guild and user_db in guild.ping_mode_users:
+            await ctx.send(f"Already impersonating {user.name}.", hidden=True)
+            return
+
+        if not guild:
+            guild = Guild(id=int(ctx.guild_id))
+        if not user_db:
+            user_db = User(id=int(user.id), name=user.name)
+        guild.ping_mode_users.append(user_db)
+        session.add(user_db)
+        session.add(guild)
         session.commit()
     await ctx.send(f"Impersonating {user.name}.", hidden=True)
+
+
+@slash.slash(
+    name="deluser",
+    description="Remove a user from the impersonation list so they are not longer impersonated when pinged.",
+    options=[
+        create_option(
+            name="user",
+            description="Choose the user to remove.",
+            option_type=6,
+            required=True,
+        )
+    ],
+    guild_ids=guild_ids,
+)
+async def deluser(ctx: SlashContext, user):
+    with Session(engine) as session:
+        guild = session.query(Guild).filter(Guild.id == ctx.guild_id).first()
+        user_db = session.query(User).filter(User.id == user.id).first()
+        if user_db and guild and user_db in guild.ping_mode_users:
+            guild.ping_mode_users.remove(user_db)
+            session.delete(user_db)
+            session.commit()
+            await ctx.send(
+                f"{user.name} will no longer being impersonated.", hidden=True
+            )
+        else:
+            await ctx.send(
+                f"{user.name} is not actively being impersonated and thus cannot be removed.",
+                hidden=True,
+            )
+
+
+@slash.slash(
+    name="list",
+    description="List users currently being impersonated.",
+    guild_ids=guild_ids,
+)
+async def impersonating_list(ctx: SlashContext):
+    with Session(engine) as session:
+        guild_db = session.query(Guild).filter(Guild.id == ctx.guild_id).first()
+        if guild_db and guild_db.ping_mode_users:
+            guild_ping_mode_users = guild_db.ping_mode_users
+            impersonating_str = ", ".join(
+                [x.name for x in guild_ping_mode_users]
+            ).strip()
+            await ctx.send(f"Currently impersonating {impersonating_str}.", hidden=True)
+        else:
+            await ctx.send(
+                f"No one is currently being impersonated. Add someone with `/adduser`.",
+                hidden=True,
+            )
 
 
 bot.run(BOT_TOKEN)
