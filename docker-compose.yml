@@ -1,0 +1,12 @@
+version: '3.5'
+
+services:
+  gpt-impostor:
+    container_name: gpt-impostor
+    image: https://github.com/HHousen/gpt-impostor
+    restart: always
+    environment:
+      - BOT_TOKEN=MY_DISCORD_BOT_TOKEN
+      - DATABASE_URL=sqlite:////usr/src/app/log_db/bot.db
+    volumes:
+      - /opt/gpt-impostor:/usr/src/app/db_log
