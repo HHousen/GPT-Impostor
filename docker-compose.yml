@@ -3,7 +3,7 @@ version: '3.5'
 services:
   gpt-impostor:
     container_name: gpt-impostor
-    image: https://github.com/HHousen/gpt-impostor
+    image: ghcr.io/hhousen/gpt-impostor:release
     restart: always
     environment:
       - BOT_TOKEN=MY_DISCORD_BOT_TOKEN
