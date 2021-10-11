@@ -20,7 +20,9 @@ You can either run GPT Impostor directly on a computer using Python or run it in
 3. Create a virtual environment: `python3 -m venv env`
 4. Activate virtual environment: `source env/bin/activate`
 5. Install dependencies: `pip3 install -r requirements.txt`
-6. Run the bot: `python3 bot.py`
+6. Make a copy of `.env.example` (`cp .env.example .env`) and change the `BOT_TOKEN` value to your bot's token.
+7. Source your environment variables: `source .env`
+8. Run the bot: `python3 bot.py`
 
 ### Docker
 
