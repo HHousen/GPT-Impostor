@@ -38,7 +38,8 @@ gpt_logger.addHandler(gpt_handler)
 
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
-MESSAGE_CONTEXT_LIMIT = 50  # Max number of messages to send as context to AI model
+MESSAGE_CONTEXT_LIMIT = 150  # Max number of messages to send as context to AI model
+LENGTH_CONTEXT_LIMIT = 512  # Maximum number of words to send as context to AI model
 ALLOW_BOT_MESSAGES_IN_CONTEXT = True
 GPT_INVALID_RESPONSE_MESSAGE = (
     "Sorry, I could not think of a good message. Please make "
@@ -124,6 +125,10 @@ async def get_previous_messages(channel, as_string=True):
     # Messages are retrieved so newest are first but GPT should read them as a
     # normal conversation.
     previous_messages.reverse()
+
+    while len(previous_messages.split()) > LENGTH_CONTEXT_LIMIT:
+        del previous_messages[0]
+
     if as_string:
         previous_messages_str = "\n".join(
             [
