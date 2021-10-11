@@ -32,8 +32,6 @@ GPT_INVALID_RESPONSE_MESSAGE = (
     "Sorry, I could not think of a good message. Please make "
     + "sure there are enough messages in this channel so that I can learn how you write."
 )
-guild_ids = [892604457030914098]
-ping_mode_users = {}
 
 bot = Client(intents=Intents.default())
 slash = SlashCommand(bot, sync_commands=True)
@@ -150,7 +148,6 @@ def log_new_stat(stat_name, increment_count=1):
             required=False,
         )
     ],
-    guild_ids=guild_ids,
 )
 async def monologue(ctx: SlashContext, max_messages=25):
     await ctx.defer(hidden=True)
@@ -194,7 +191,6 @@ async def monologue(ctx: SlashContext, max_messages=25):
             required=True,
         )
     ],
-    guild_ids=guild_ids,
 )
 async def sus(ctx: SlashContext, user=None):
     await ctx.defer(hidden=True)
@@ -241,7 +237,6 @@ async def gpt_channel_response(channel, user):
             required=True,
         )
     ],
-    guild_ids=guild_ids,
 )
 async def adduser(ctx: SlashContext, user):
     if user == bot.user:
@@ -279,7 +274,6 @@ async def adduser(ctx: SlashContext, user):
             required=True,
         )
     ],
-    guild_ids=guild_ids,
 )
 async def deluser(ctx: SlashContext, user):
     with Session(engine) as session:
@@ -300,9 +294,7 @@ async def deluser(ctx: SlashContext, user):
 
 
 @slash.slash(
-    name="list",
-    description="List users currently being impersonated.",
-    guild_ids=guild_ids,
+    name="list", description="List users currently being impersonated.",
 )
 async def impersonating_list(ctx: SlashContext):
     with Session(engine) as session:
@@ -321,9 +313,7 @@ async def impersonating_list(ctx: SlashContext):
 
 
 @slash.slash(
-    name="stats",
-    description="Get statistics about the GPT Impostor bot.",
-    guild_ids=guild_ids,
+    name="stats", description="Get statistics about the GPT Impostor bot.",
 )
 async def stats(ctx: SlashContext):
     server_count = len(bot.guilds)
