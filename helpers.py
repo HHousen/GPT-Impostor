@@ -8,10 +8,24 @@ def remove_prefix(text, prefix):
 
 
 def get_gpt_first_message(gpt_response, user_name):
-    first_response_message = gpt_response.strip().split("\n")[0]
-    first_response_message = remove_prefix(first_response_message, f"{user_name}:")
+    original_first_response_message = gpt_response.strip().split("\n")[0]
+    first_response_message = remove_prefix(
+        original_first_response_message, f"{user_name}:"
+    )
     first_response_message = remove_prefix(first_response_message, f"{user_name}")
+    if first_response_message != original_first_response_message:
+        return first_response_message.strip()
+
     first_response_message = first_response_message.strip()
+    try:
+        username_section, message_section = first_response_message.split(":", 1)
+    except ValueError:
+        return first_response_message
+
+    message_section = message_section.strip()
+    if len(username_section) <= 32 and message_section:
+        return message_section
+
     return first_response_message
 
 
