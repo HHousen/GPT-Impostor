@@ -48,6 +48,9 @@ GPT_INVALID_RESPONSE_MESSAGE = (
 GENERIC_GPT_API_ERROR_MESSAGE = (
     "Error communicating with the AI model. Please try again."
 )
+UNKNOWN_ERROR_MESSAGE = (
+    "An unknown error occurred when trying to generate a response. Please try again."
+)
 
 bot = Client(intents=Intents.default())
 slash = SlashCommand(bot, sync_commands=True)
@@ -82,6 +85,8 @@ async def on_message(message):
         )
         if first_response_message:
             await message.channel.send(first_response_message)
+        else:
+            await bot.send_message(message.author, UNKNOWN_ERROR_MESSAGE)
 
     with Session(engine) as session:
         guild_db = session.query(Guild).filter(Guild.id == message.guild.id).first()
@@ -107,6 +112,10 @@ async def on_message(message):
                     avatar_url=user.avatar_url,
                 )
                 log_new_stat("Impersonation Count")
+            else:
+                await bot.send_message(
+                    message.author, "**Ping Mode:** " + UNKNOWN_ERROR_MESSAGE
+                )
 
 
 async def get_channel_webhook(channel):
