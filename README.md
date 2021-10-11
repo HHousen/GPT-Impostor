@@ -32,6 +32,10 @@ You can either run GPT Impostor directly on a computer using Python or run it in
 4. (Optional) Change the volume mapping. The database and log files are located at `/usr/src/app/db_log` within the container. To make sure these files are not erased when the container updates, they are mapped to `/opt/gpt-impostor` on the host system. You can change the location of these files on the host system if desired by modifying the part that reads `/opt/gpt-impostor`.
 5. Start the container: `sudo docker-compose up -d gpt-impostor`.
 
+### Repl.it
+
+This bot can be run on [Repl.it](https://replit.com/) using the approach from [this video by FreeCodeCamp](https://youtu.be/SPTfmiYiuok?t=3522). This repo includes a [keep_alive.py](keep_alive.py) script that will automatically be used if the `RUNNING_IN_REPLIT` environment variable is set to `True`. So, simply go to Repl.it, clone this repo, set `RUNNING_IN_REPLIT` to True in the secrets section, setup [UpTimeRobot](https://uptimerobot.com/) to ping the webserver, and you're good to go.
+
 ## Meta
 
 [![ForTheBadge built-with-love](https://ForTheBadge.com/images/badges/built-with-love.svg)](https://GitHub.com/HHousen/)

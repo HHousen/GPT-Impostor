@@ -9,6 +9,13 @@ from discord_slash.utils.manage_commands import create_option
 from helpers import run_gpt_inference, get_gpt_first_message
 from models import Guild, User, Statistic, Base
 
+try:
+    RUNNING_IN_REPLIT = os.environ["RUNNING_IN_REPLIT"]
+except KeyError:
+    RUNNING_IN_REPLIT = False
+if RUNNING_IN_REPLIT:
+    from keep_alive import keep_alive
+
 logger = logging.getLogger("discord")
 logger.setLevel(logging.DEBUG)
 handler = logging.FileHandler(filename="log_db/discord.log", encoding="utf-8", mode="w")
@@ -340,4 +347,6 @@ async def stats(ctx: SlashContext):
     )
 
 
+if RUNNING_IN_REPLIT:
+    keep_alive()
 bot.run(BOT_TOKEN)
