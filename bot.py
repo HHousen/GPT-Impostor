@@ -343,7 +343,7 @@ async def stats(ctx: SlashContext):
             .value
         )
     await ctx.send(
-        f"GPT Impostor is in **{server_count} servers** totaling **{member_count} members**. It has made **{gpt_inference_count} message predictions** and has sent a message impersonating someone **{impersonation_count} times**.",
+        f"GPT Impostor is in **{server_count} servers**. It has made **{gpt_inference_count} message predictions** and has sent a message impersonating someone **{impersonation_count} times**.",
         hidden=True,
     )
 
