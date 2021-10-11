@@ -19,7 +19,7 @@ if RUNNING_IN_REPLIT:
 discord_logger = logging.getLogger("discord")
 discord_logger.setLevel(logging.DEBUG)
 discord_handler = logging.FileHandler(
-    filename="log_db/discord.log", encoding="utf-8", mode="w"
+    filename="log_db/discord.log", encoding="utf-8", mode="a+"
 )
 discord_handler.setFormatter(
     logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
@@ -28,7 +28,9 @@ discord_logger.addHandler(discord_handler)
 
 gpt_logger = logging.getLogger("gpt")
 gpt_logger.setLevel(logging.DEBUG)
-gpt_handler = logging.FileHandler(filename="log_db/gpt.log", encoding="utf-8", mode="w")
+gpt_handler = logging.FileHandler(
+    filename="log_db/gpt.log", encoding="utf-8", mode="a+"
+)
 gpt_handler.setFormatter(
     logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
 )
