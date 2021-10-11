@@ -8,6 +8,8 @@ def remove_prefix(text, prefix):
 
 
 def get_gpt_first_message(gpt_response, user_name):
+    if gpt_response is None:
+        return gpt_response
     original_first_response_message = gpt_response.strip().split("\n")[0]
     first_response_message = remove_prefix(
         original_first_response_message, f"{user_name}:"
@@ -39,5 +41,9 @@ def run_gpt_inference(context, token_max_length=512):
     headers = {"User-Agent": "(GPT Impostor for Discord, gptimpostor.tech)"}
     response = requests.post(
         "http://api.vicgalle.net:5000/generate", params=payload, headers=headers,
-    ).json()
-    return response["text"]
+    )
+    if response.status_code == 200:
+        response_json = response.json()
+        return response_json["text"]
+    else:
+        return None

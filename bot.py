@@ -45,6 +45,9 @@ GPT_INVALID_RESPONSE_MESSAGE = (
     "Sorry, I could not think of a good message. Please make "
     + "sure there are enough messages in this channel so that I can learn how you write."
 )
+GENERIC_GPT_API_ERROR_MESSAGE = (
+    "Error communicating with the AI model. Please try again."
+)
 
 bot = Client(intents=Intents.default())
 slash = SlashCommand(bot, sync_commands=True)
@@ -175,6 +178,13 @@ async def monologue(ctx: SlashContext, max_messages=25):
 
     gpt_response = run_gpt_inference(previous_messages_str, token_max_length=512)
     log_new_stat("GPT Inference Calls")
+
+    if gpt_response is None:
+        await ctx.send(
+            GENERIC_GPT_API_ERROR_MESSAGE, hidden=True,
+        )
+        return
+
     gpt_messages = [
         message.split(":", 1) for message in gpt_response.strip().split("\n")
     ]
@@ -182,12 +192,15 @@ async def monologue(ctx: SlashContext, max_messages=25):
 
     gpt_messages = gpt_messages[:max_messages]
 
-    for content in gpt_messages:
+    for idx, content in enumerate(gpt_messages):
         if len(content) <= 1:
-            await ctx.send(
-                GPT_INVALID_RESPONSE_MESSAGE, hidden=True,
-            )
-            return
+            del gpt_messages[idx]
+
+    if not gpt_messages:
+        await ctx.send(
+            GPT_INVALID_RESPONSE_MESSAGE, hidden=True,
+        )
+        return
 
     log_new_stat("Impersonation Count", len(gpt_messages))
     for user, message in gpt_messages:
@@ -213,6 +226,12 @@ async def sus(ctx: SlashContext, user=None):
 
     channel = bot.get_channel(ctx.channel_id)
     webhook, first_response_message = await gpt_channel_response(channel, user)
+
+    if first_response_message is None:
+        await ctx.send(
+            GENERIC_GPT_API_ERROR_MESSAGE, hidden=True,
+        )
+        return
 
     if not first_response_message:
         await ctx.send(
