@@ -16,13 +16,23 @@ except KeyError:
 if RUNNING_IN_REPLIT:
     from keep_alive import keep_alive
 
-logger = logging.getLogger("discord")
-logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename="log_db/discord.log", encoding="utf-8", mode="w")
-handler.setFormatter(
+discord_logger = logging.getLogger("discord")
+discord_logger.setLevel(logging.DEBUG)
+discord_handler = logging.FileHandler(
+    filename="log_db/discord.log", encoding="utf-8", mode="w"
+)
+discord_handler.setFormatter(
     logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
 )
-logger.addHandler(handler)
+discord_logger.addHandler(discord_handler)
+
+gpt_logger = logging.getLogger("gpt")
+gpt_logger.setLevel(logging.DEBUG)
+gpt_handler = logging.FileHandler(filename="log_db/gpt.log", encoding="utf-8", mode="w")
+gpt_handler.setFormatter(
+    logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
+)
+gpt_logger.addHandler(gpt_handler)
 
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
@@ -95,7 +105,7 @@ async def on_message(message):
 
 
 async def get_channel_webhook(channel):
-    logger.debug("Getting channel %s's webhook...", channel.id)
+    discord_logger.debug("Getting channel %s's webhook...", channel.id)
     webhooks = await channel.webhooks()
     webhook = next((x for x in webhooks if x.name == str(channel.id)), False)
     if not webhook:
@@ -104,7 +114,7 @@ async def get_channel_webhook(channel):
 
 
 async def get_previous_messages(channel, as_string=True):
-    logger.debug("Getting channel %s's previous messages...", channel.id)
+    discord_logger.debug("Getting channel %s's previous messages...", channel.id)
     previous_messages = await channel.history(limit=MESSAGE_CONTEXT_LIMIT).flatten()
     if not ALLOW_BOT_MESSAGES_IN_CONTEXT:
         previous_messages = [
@@ -216,11 +226,11 @@ async def gpt_channel_response(channel, user):
     previous_messages_str = await get_previous_messages(channel)
 
     context = previous_messages_str + f"\n{user.name}: "
-    logger.debug(f"> Context:\n{context}")
+    gpt_logger.debug(f"Context ({channel.id}):\n{context}\n-----------")
 
     gpt_response = run_gpt_inference(context, token_max_length=50)
     log_new_stat("GPT Inference Calls")
-    logger.debug(f"> GPT Response:\n{gpt_response}")
+    gpt_logger.debug(f"GPT Response ({channel.id}):\n{gpt_response}\n-----------")
 
     first_response_message = get_gpt_first_message(gpt_response, user.name)
     return webhook, first_response_message
