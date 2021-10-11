@@ -126,7 +126,7 @@ async def get_previous_messages(channel, as_string=True):
     # normal conversation.
     previous_messages.reverse()
 
-    while len(previous_messages.split()) > LENGTH_CONTEXT_LIMIT:
+    while sum(len(x.split()) for x in previous_messages) > LENGTH_CONTEXT_LIMIT:
         del previous_messages[0]
 
     if as_string:
