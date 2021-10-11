@@ -7,7 +7,7 @@ from discord import Client, Intents
 from discord_slash import SlashCommand, SlashContext
 from discord_slash.utils.manage_commands import create_option
 from helpers import run_gpt_inference, get_gpt_first_message
-from models import Guild, User, Base
+from models import Guild, User, Statistic, Base
 
 logger = logging.getLogger("discord")
 logger.setLevel(logging.DEBUG)
@@ -86,6 +86,7 @@ async def on_message(message):
                     username=user.name,
                     avatar_url=user.avatar_url,
                 )
+                log_new_stat("Impersonation Count")
 
 
 async def get_channel_webhook(channel):
@@ -119,6 +120,18 @@ async def get_previous_messages(channel, as_string=True):
         return previous_messages
 
 
+def log_new_stat(stat_name, increment_count=1):
+    with Session(engine) as session:
+        stat = session.query(Statistic).filter(Statistic.name == stat_name).first()
+        if not stat:
+            stat = Statistic(name=stat_name, value=0)
+
+        stat.value += increment_count
+
+        session.add(stat)
+        session.commit()
+
+
 @slash.slash(
     name="monologue",
     description="Have AI continue your conversation (multiple messages).",
@@ -141,6 +154,7 @@ async def monologue(ctx: SlashContext, max_messages=25):
     previous_messages_str = await get_previous_messages(channel)
 
     gpt_response = run_gpt_inference(previous_messages_str, token_max_length=512)
+    log_new_stat("GPT Inference Calls")
     gpt_messages = [
         message.split(":", 1) for message in gpt_response.strip().split("\n")
     ]
@@ -155,8 +169,10 @@ async def monologue(ctx: SlashContext, max_messages=25):
             )
             return
 
+    log_new_stat("Impersonation Count", len(gpt_messages))
     for user, message in gpt_messages:
-        await webhook.send(message, username=user)
+        if message:
+            await webhook.send(message, username=user)
     await ctx.send("Fake conversation sent!", hidden=True)
 
 
@@ -188,6 +204,7 @@ async def sus(ctx: SlashContext, user=None):
             first_response_message, username=user.name, avatar_url=user.avatar_url
         )
         await ctx.send("Fake message sent!", hidden=True)
+        log_new_stat("Impersonation Count")
 
 
 async def gpt_channel_response(channel, user):
@@ -199,6 +216,7 @@ async def gpt_channel_response(channel, user):
     logger.debug(f"> Context:\n{context}")
 
     gpt_response = run_gpt_inference(context, token_max_length=50)
+    log_new_stat("GPT Inference Calls")
     logger.debug(f"> GPT Response:\n{gpt_response}")
 
     first_response_message = get_gpt_first_message(gpt_response, user.name)
@@ -293,6 +311,33 @@ async def impersonating_list(ctx: SlashContext):
                 f"No one is currently being impersonated. Add someone with `/adduser`.",
                 hidden=True,
             )
+
+
+@slash.slash(
+    name="stats",
+    description="Get statistics about the GPT Impostor bot.",
+    guild_ids=guild_ids,
+)
+async def stats(ctx: SlashContext):
+    server_count = len(bot.guilds)
+    member_count = len(set(bot.get_all_members()))
+    with Session(engine) as session:
+        gpt_inference_count = (
+            session.query(Statistic)
+            .filter(Statistic.name == "GPT Inference Calls")
+            .first()
+            .value
+        )
+        impersonation_count = (
+            session.query(Statistic)
+            .filter(Statistic.name == "Impersonation Count")
+            .first()
+            .value
+        )
+    await ctx.send(
+        f"GPT Impostor is in **{server_count} servers** totaling **{member_count} members**. It has made **{gpt_inference_count} message predictions** and has sent a message impersonating someone **{impersonation_count} times**.",
+        hidden=True,
+    )
 
 
 bot.run(BOT_TOKEN)
