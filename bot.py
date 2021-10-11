@@ -78,12 +78,11 @@ async def on_message(message):
             await message.channel.send(first_response_message)
 
     with Session(engine) as session:
-        guild_ping_mode_users = (
-            session.query(Guild)
-            .filter(Guild.id == message.guild.id)
-            .first()
-            .ping_mode_users
-        )
+        guild_db = session.query(Guild).filter(Guild.id == message.guild.id).first()
+        guild_ping_mode_users = None
+        if guild_db:
+            guild_ping_mode_users = guild_db.ping_mode_users
+
     if guild_ping_mode_users:
         can_be_impersonated = {x.id for x in guild_ping_mode_users}
         message_mentions_ids = {x.id: x for x in message.mentions}
