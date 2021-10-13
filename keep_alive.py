@@ -1,6 +1,9 @@
+import os
+import requests
 from flask import Flask
-from threading import Thread
+from threading import Thread, Timer
 
+UPTIME_CHECK_URL = None
 app = Flask(__name__)
 
 
@@ -13,6 +16,17 @@ def run():
     app.run(host="0.0.0.0", port=36302)
 
 
+def log_uptime():
+    Timer(60, log_uptime).start()
+    try:
+        requests.get(UPTIME_CHECK_URL, timeout=10)
+    except requests.RequestException as e:
+        print("Ping failed: %s" % e)
+
+
 def keep_alive():
+    if "UPTIME_CHECK_URL" in os.environ:
+        UPTIME_CHECK_URL = os.environ["UPTIME_CHECK_URL"]
+        log_uptime()
     t = Thread(target=run)
     t.start()
