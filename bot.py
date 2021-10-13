@@ -147,6 +147,7 @@ async def get_previous_messages(channel, as_string=True):
             [
                 f"{message.author.name}: {message.content}"
                 for message in previous_messages
+                if message.content
             ]
         )
         return remove_non_ascii(previous_messages_str)
