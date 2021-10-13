@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "gpt-impostor"
+version = "1.0.0"
+description = "Impersonate your friends on Discord using the latest research in AI and machine learning."
+authors = ["Hayden Housen <hayden@haydenhousen.com>"]
+license = "GNU General Public License v3.0"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+requests = "^2.26.0"
+"discord.py" = "^1.7.3"
+discord-py-interactions = "^3.0.2"
+SQLAlchemy = "^1.4.25"
+SQLAlchemy-Utils = "^0.37.8"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
