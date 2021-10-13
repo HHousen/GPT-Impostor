@@ -7,6 +7,10 @@ def remove_prefix(text, prefix):
     return text
 
 
+def remove_non_ascii(s):
+    return "".join(c for c in s if ord(c) < 128)
+
+
 def get_gpt_first_message(gpt_response, user_name):
     if gpt_response is None:
         return gpt_response

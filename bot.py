@@ -6,7 +6,7 @@ from sqlalchemy_utils import database_exists, create_database
 from discord import Client, Intents
 from discord_slash import SlashCommand, SlashContext
 from discord_slash.utils.manage_commands import create_option
-from helpers import run_gpt_inference, get_gpt_first_message
+from helpers import run_gpt_inference, get_gpt_first_message, remove_non_ascii
 from models import Guild, User, Statistic, Base
 
 try:
@@ -149,7 +149,7 @@ async def get_previous_messages(channel, as_string=True):
                 for message in previous_messages
             ]
         )
-        return previous_messages_str
+        return remove_non_ascii(previous_messages_str)
     else:
         return previous_messages
 
