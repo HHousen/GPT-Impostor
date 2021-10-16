@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 import sqlalchemy as db
 from sqlalchemy.orm import Session
@@ -264,9 +265,13 @@ async def gpt_channel_response(channel, user):
     context = previous_messages_str + f"\n{user.name}: "
     gpt_logger.debug(f"Context ({channel.id}):\n{context}\n-----------")
 
+    start = time.time()
     gpt_response = run_gpt_inference(context, token_max_length=50)
     log_new_stat("GPT Inference Calls")
-    gpt_logger.debug(f"GPT Response ({channel.id}):\n{gpt_response}\n-----------")
+    inference_time = time.time() - start
+    gpt_logger.debug(
+        f"GPT Response ({channel.id}, {inference_time:.2f}s):\n{gpt_response}\n-----------"
+    )
 
     first_response_message = get_gpt_first_message(gpt_response, user.name)
     return webhook, first_response_message
