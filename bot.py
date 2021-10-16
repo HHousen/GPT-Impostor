@@ -55,7 +55,7 @@ UNKNOWN_ERROR_MESSAGE = (
 )
 NO_WEBHOOK_PERMISSION_ERROR_MESSAGE = (
     "Could not create/get the webhook for this channel. "
-    + "Please make sure that GPT Impostor has the webhook permission for this channel.",
+    + "Please make sure that GPT Impostor has the webhook permission for this channel."
 )
 
 bot = Client(intents=Intents.default())
@@ -219,9 +219,7 @@ async def monologue(ctx: SlashContext, max_messages=25):
 
     gpt_messages = gpt_messages[:max_messages]
 
-    for idx, content in enumerate(gpt_messages):
-        if len(content) <= 1:
-            del gpt_messages[idx]
+    gpt_messages = [content for content in gpt_messages if len(content) > 1]
 
     if not gpt_messages:
         await ctx.send(
