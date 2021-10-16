@@ -5,6 +5,7 @@ import sqlalchemy as db
 from sqlalchemy.orm import Session
 from sqlalchemy_utils import database_exists, create_database
 from discord import Client, Intents
+from discord.errors import Forbidden
 from discord_slash import SlashCommand, SlashContext
 from discord_slash.utils.manage_commands import create_option
 from helpers import run_gpt_inference, get_gpt_first_message, remove_non_ascii
@@ -52,6 +53,10 @@ GENERIC_GPT_API_ERROR_MESSAGE = (
 UNKNOWN_ERROR_MESSAGE = (
     "An unknown error occurred when trying to generate a response. Please try again."
 )
+NO_WEBHOOK_PERMISSION_ERROR_MESSAGE = (
+    "Could not create/get the webhook for this channel. "
+    + "Please make sure that GPT Impostor has the webhook permission for this channel.",
+)
 
 bot = Client(intents=Intents.default())
 slash = SlashCommand(bot, sync_commands=True)
@@ -82,8 +87,10 @@ async def on_message(message):
 
     if bot.user in message.mentions:
         webhook, first_response_message = await gpt_channel_response(
-            message.channel, bot.user
+            message.author, message.channel, bot.user
         )
+        if not webhook:
+            return
         if first_response_message:
             await message.channel.send(first_response_message)
         else:
@@ -104,8 +111,10 @@ async def on_message(message):
         for user_id_to_impersonate in user_ids_to_impersonate:
             user = message_mentions_ids[user_id_to_impersonate]
             webhook, first_response_message = await gpt_channel_response(
-                message.channel, user
+                message.author, message.channel, user
             )
+            if not webhook:
+                return
             if first_response_message:
                 await webhook.send(
                     first_response_message,
@@ -184,7 +193,13 @@ async def monologue(ctx: SlashContext, max_messages=25):
     await ctx.defer(hidden=True)
 
     channel = bot.get_channel(ctx.channel_id)
-    webhook = await get_channel_webhook(channel)
+    try:
+        webhook = await get_channel_webhook(channel)
+    except Forbidden:
+        await ctx.send(
+            NO_WEBHOOK_PERMISSION_ERROR_MESSAGE, hidden=True,
+        )
+        return
 
     previous_messages_str = await get_previous_messages(channel)
 
@@ -237,7 +252,9 @@ async def sus(ctx: SlashContext, user=None):
     await ctx.defer(hidden=True)
 
     channel = bot.get_channel(ctx.channel_id)
-    webhook, first_response_message = await gpt_channel_response(channel, user)
+    webhook, first_response_message = await gpt_channel_response(ctx, channel, user)
+    if not webhook:
+        return
 
     if first_response_message is None:
         await ctx.send(
@@ -257,8 +274,14 @@ async def sus(ctx: SlashContext, user=None):
         log_new_stat("Impersonation Count")
 
 
-async def gpt_channel_response(channel, user):
-    webhook = await get_channel_webhook(channel)
+async def gpt_channel_response(ctx, channel, user):
+    try:
+        webhook = await get_channel_webhook(channel)
+    except Forbidden:
+        await ctx.send(
+            NO_WEBHOOK_PERMISSION_ERROR_MESSAGE, hidden=True,
+        )
+        return None, None
 
     previous_messages_str = await get_previous_messages(channel)
 
