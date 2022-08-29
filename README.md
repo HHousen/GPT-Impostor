@@ -5,9 +5,9 @@
 
 [![GitHub license](https://img.shields.io/github/license/HHousen/GPT-Impostor.svg)](https://github.com/HHousen/GPT-Impostor/blob/master/LICENSE) [![Github commits](https://img.shields.io/github/last-commit/HHousen/GPT-Impostor.svg)](https://github.com/HHousen/GPT-Impostor/commits/master) [![made-with-python](https://img.shields.io/badge/Made%20with-Python-1f425f.svg)](https://www.python.org/) [![GitHub issues](https://img.shields.io/github/issues/HHousen/GPT-Impostor.svg)](https://GitHub.com/HHousen/GPT-Impostor/issues/) [![GitHub pull-requests](https://img.shields.io/github/issues-pr/HHousen/GPT-Impostor.svg)](https://GitHub.com/HHousen/GPT-Impostor/pull/)
 
-**Check out [the website](https://gptimpostor.tech) for more information.**
+**Check out [the website](https://gptimpostor.haydenhousen.com) for more information.**
 
-[![Add the bot to your Discord server!](add-to-discord_button.png)](https://gptimpostor.tech)
+[![Add the bot to your Discord server!](add-to-discord_button.png)](https://gptimpostor.haydenhousen.com)
 
 ## Getting Started (Installation)
 
